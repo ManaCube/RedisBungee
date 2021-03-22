@@ -131,7 +131,7 @@ public class RedisBungeeListener implements Listener {
         });
     }
 
-    @EventHandler(priority = EventPriority.LOWEST)
+    @EventHandler(priority = EventPriority.HIGH)
     public void onPing(final ProxyPingEvent event) {
         if (exemptAddresses.contains(event.getConnection().getAddress().getAddress())) {
             return;
@@ -143,7 +143,7 @@ public class RedisBungeeListener implements Listener {
             return;
         }
 
-        event.getResponse().getPlayers().setOnline(plugin.getCount());
+        event.getResponse().getPlayers().setOnline((int) (plugin.getCount() * plugin.getMultiplier()));
     }
 
     @EventHandler

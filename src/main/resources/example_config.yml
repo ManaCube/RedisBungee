@@ -12,6 +12,8 @@ redis-password: ""
 # inefficient plugins or a lot of players.
 max-redis-connections: 8
 
+multiplier: 1
+
 # An identifier for this BungeeCord instance.
 server-id: test1
 

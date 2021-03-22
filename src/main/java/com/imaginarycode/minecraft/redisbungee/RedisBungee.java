@@ -65,6 +65,9 @@ public final class RedisBungee extends Plugin {
     private LuaManager.Script serverToPlayersScript;
     private LuaManager.Script getPlayerCountScript;
 
+    @Getter
+    private double multiplier = 1;
+
     private static final Object SERVER_TO_PLAYERS_KEY = new Object();
     private final Cache<Object, Multimap<String, UUID>> serverToPlayersCache = CacheBuilder.newBuilder()
             .expireAfterWrite(5, TimeUnit.SECONDS)
@@ -424,6 +427,8 @@ public final class RedisBungee extends Plugin {
         if (serverId == null || serverId.isEmpty()) {
             throw new RuntimeException("server-id is not specified in the configuration or is empty");
         }
+
+        multiplier = configuration.getDouble("multiplier", 1);
 
         if (redisServer != null && !redisServer.isEmpty()) {
             final String finalRedisPassword = redisPassword;
