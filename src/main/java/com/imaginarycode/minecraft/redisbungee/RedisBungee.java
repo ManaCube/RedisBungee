@@ -451,6 +451,7 @@ public final class RedisBungee extends Plugin {
                 // Create the pool...
                 JedisPoolConfig config = new JedisPoolConfig();
                 config.setMaxTotal(Math.max(configuration.getInt("max-redis-connections", 8), 4));
+                config.setMinIdle(config.getMaxTotal() / 2);
                 return new JedisPool(config, redisServer, redisPort, 0, finalRedisPassword);
             });
 
