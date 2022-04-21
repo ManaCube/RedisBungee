@@ -17,6 +17,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import lombok.Synchronized;
 import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Plugin;
@@ -58,7 +59,9 @@ public final class RedisBungee extends Plugin {
     private DataManager dataManager;
     @Getter
     private static OkHttpClient httpClient;
-    private volatile List<String> serverIds;
+
+    @Getter(value = AccessLevel.PACKAGE, onMethod_ = {@Synchronized})
+    private final List<String> serverIds = new ArrayList<>();
     private final AtomicInteger nagAboutServers = new AtomicInteger();
     private final AtomicInteger globalPlayerCount = new AtomicInteger();
 
@@ -90,35 +93,41 @@ public final class RedisBungee extends Plugin {
         return psl;
     }
 
-    final List<String> getServerIds() {
-        return serverIds;
-    }
-
-    private List<String> getCurrentServerIds(boolean nag, boolean lagged) {
-        try (Jedis jedis = pool.getResource()) {
-            long time = getRedisTime(jedis.time());
+    private List<String> getCurrentServerIds(boolean nag, boolean lagged)
+    {
+        try (Jedis jedis = pool.getResource())
+        {
             int nagTime = 0;
-            if (nag) {
+            if (nag)
+            {
                 nagTime = nagAboutServers.decrementAndGet();
-                if (nagTime <= 0) {
+                if (nagTime <= 0)
+                {
                     nagAboutServers.set(10);
                 }
             }
-            ImmutableList.Builder<String> servers = ImmutableList.builder();
-            Map<String, String> heartbeats = jedis.hgetAll("heartbeats");
-            for (Map.Entry<String, String> entry : heartbeats.entrySet()) {
-                try {
+            ImmutableList.Builder<String> servers    = ImmutableList.builder();
+            Map<String, String>           heartbeats = jedis.hgetAll("heartbeats");
+            final long                    time       = getRedisTime(jedis.time());
+            for (Map.Entry<String, String> entry : heartbeats.entrySet())
+            {
+                try
+                {
                     long stamp = Long.parseLong(entry.getValue());
                     if (lagged ? time >= stamp + 30 : time <= stamp + 30)
+                    {
                         servers.add(entry.getKey());
-                    else if (nag && nagTime <= 0) {
+                    } else if (nag && nagTime <= 0)
+                    {
                         getLogger().severe(entry.getKey() + " is " + (time - stamp) + " seconds behind! (Time not synchronized or server down?)");
                     }
-                } catch (NumberFormatException ignored) {
+                } catch (NumberFormatException ignored)
+                {
                 }
             }
             return servers.build();
-        } catch (JedisConnectionException e) {
+        } catch (JedisConnectionException e)
+        {
             getLogger().log(Level.SEVERE, "Unable to fetch server IDs", e);
             return Collections.singletonList(configuration.getServerId());
         }
@@ -136,7 +145,7 @@ public final class RedisBungee extends Plugin {
         }
     }
 
-    final Multimap<String, UUID> serversToPlayers() {
+    Multimap<String, UUID> serversToPlayers() {
         try {
             return serverToPlayersCache.get(SERVER_TO_PLAYERS_KEY, () -> {
                 Collection<String> data = (Collection<String>) serverToPlayersScript.eval(ImmutableList.<String>of(), getServerIds());
@@ -160,7 +169,7 @@ public final class RedisBungee extends Plugin {
         }
     }
 
-    final int getCount() {
+    int getCount() {
         return globalPlayerCount.get();
     }
 
@@ -177,7 +186,7 @@ public final class RedisBungee extends Plugin {
         return builder.build();
     }
 
-    final Set<UUID> getPlayers() {
+     Set<UUID> getPlayers() {
         ImmutableSet.Builder<UUID> setBuilder = ImmutableSet.builder();
         if (pool != null) {
             try (Jedis rsc = pool.getResource()) {
@@ -259,7 +268,8 @@ public final class RedisBungee extends Plugin {
                     getLogger().info("Looks like you have a really big UUID cache! Run https://www.spigotmc.org/resources/redisbungeecleaner.8505/ as soon as possible.");
                 }
             }
-            serverIds = getCurrentServerIds(true, false);
+            getServerIds().clear();
+            getServerIds().addAll(getCurrentServerIds(true, false));
             uuidTranslator = new UUIDTranslator(this);
             heartbeatTask = SCHEDULER.scheduleAtFixedRate(() -> {
                 try (Jedis rsc = pool.getResource()) {
