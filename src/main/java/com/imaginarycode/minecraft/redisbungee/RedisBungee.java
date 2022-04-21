@@ -61,7 +61,7 @@ public final class RedisBungee extends Plugin {
     private final AtomicInteger globalPlayerCount = new AtomicInteger();
     private Future<?> integrityCheck;
     private Future<?> heartbeatTask;
-    private boolean usingLua;
+
     private LuaManager.Script serverToPlayersScript;
     private LuaManager.Script getPlayerCountScript;
 
@@ -134,25 +134,22 @@ public final class RedisBungee extends Plugin {
 
     final Multimap<String, UUID> serversToPlayers() {
         try {
-            return serverToPlayersCache.get(SERVER_TO_PLAYERS_KEY, new Callable<Multimap<String, UUID>>() {
-                @Override
-                public Multimap<String, UUID> call() throws Exception {
-                    Collection<String> data = (Collection<String>) serverToPlayersScript.eval(ImmutableList.<String>of(), getServerIds());
+            return serverToPlayersCache.get(SERVER_TO_PLAYERS_KEY, () -> {
+                Collection<String> data = (Collection<String>) serverToPlayersScript.eval(ImmutableList.<String>of(), getServerIds());
 
-                    ImmutableMultimap.Builder<String, UUID> builder = ImmutableMultimap.builder();
-                    String key = null;
-                    for (String s : data) {
-                        if (key == null) {
-                            key = s;
-                            continue;
-                        }
-
-                        builder.put(key, UUID.fromString(s));
-                        key = null;
+                ImmutableMultimap.Builder<String, UUID> builder = ImmutableMultimap.builder();
+                String key = null;
+                for (String s : data) {
+                    if (key == null) {
+                        key = s;
+                        continue;
                     }
 
-                    return builder.build();
+                    builder.put(key, UUID.fromString(s));
+                    key = null;
                 }
+
+                return builder.build();
             });
         } catch (ExecutionException e) {
             throw new RuntimeException(e);
@@ -163,8 +160,8 @@ public final class RedisBungee extends Plugin {
         return globalPlayerCount.get();
     }
 
-    final int getCurrentCount() {
-        Long count = (Long) getPlayerCountScript.eval(ImmutableList.<String>of(), ImmutableList.<String>of());
+    int getCurrentCount() {
+        Long count = (Long) getPlayerCountScript.eval(ImmutableList.of(), ImmutableList.of());
         return count.intValue();
     }
 
@@ -249,7 +246,7 @@ public final class RedisBungee extends Plugin {
                 for (String s : info.split("\r\n")) {
                     if (s.startsWith("redis_version:")) {
                         String version = s.split(":")[1];
-                        if (!(usingLua = RedisUtil.canUseLua(version))) {
+                        if (!RedisUtil.canUseLua(version)) {
                             getLogger().warning("Your version of Redis (" + version + ") is not at least version 2.6. RedisBungee requires a newer version of Redis.");
                             throw new RuntimeException("Unsupported Redis version detected");
                         } else {
@@ -432,14 +429,11 @@ public final class RedisBungee extends Plugin {
 
         if (redisServer != null && !redisServer.isEmpty()) {
             final String finalRedisPassword = redisPassword;
-            FutureTask<JedisPool> task = new FutureTask<>(new Callable<JedisPool>() {
-                @Override
-                public JedisPool call() throws Exception {
-                    // Create the pool...
-                    JedisPoolConfig config = new JedisPoolConfig();
-                    config.setMaxTotal(configuration.getInt("max-redis-connections", 8));
-                    return new JedisPool(config, redisServer, redisPort, 0, finalRedisPassword);
-                }
+            FutureTask<JedisPool> task = new FutureTask<>(() -> {
+                // Create the pool...
+                JedisPoolConfig config = new JedisPoolConfig();
+                config.setMaxTotal(Math.max(configuration.getInt("max-redis-connections", 8), 4));
+                return new JedisPool(config, redisServer, redisPort, 0, finalRedisPassword);
             });
 
             getProxy().getScheduler().runAsync(this, task);
@@ -471,17 +465,14 @@ public final class RedisBungee extends Plugin {
                     }
                 }
 
-                FutureTask<Void> task2 = new FutureTask<>(new Callable<Void>() {
-                    @Override
-                    public Void call() throws Exception {
-                        httpClient = new OkHttpClient();
-                        Dispatcher dispatcher = new Dispatcher(getExecutorService());
-                        httpClient.setDispatcher(dispatcher);
-                        NameFetcher.setHttpClient(httpClient);
-                        UUIDFetcher.setHttpClient(httpClient);
-                        RedisBungee.configuration = new RedisBungeeConfiguration(RedisBungee.this.getPool(), configuration);
-                        return null;
-                    }
+                FutureTask<Void> task2 = new FutureTask<>(() -> {
+                    httpClient = new OkHttpClient();
+                    Dispatcher dispatcher = new Dispatcher();
+                    httpClient.setDispatcher(dispatcher);
+                    NameFetcher.setHttpClient(httpClient);
+                    UUIDFetcher.setHttpClient(httpClient);
+                    RedisBungee.configuration = new RedisBungeeConfiguration(RedisBungee.this.getPool(), configuration);
+                    return null;
                 });
 
                 getProxy().getScheduler().runAsync(this, task2);
