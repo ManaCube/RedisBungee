@@ -75,6 +75,9 @@ public final class RedisBungee extends Plugin {
     @Getter
     private double multiplier = 1;
 
+    //DEBUG
+    long lastHeartbeat;
+
     private static final Object SERVER_TO_PLAYERS_KEY = new Object();
     private final Cache<Object, Multimap<String, UUID>> serverToPlayersCache = CacheBuilder.newBuilder()
             .expireAfterWrite(5, TimeUnit.SECONDS)
@@ -275,6 +278,7 @@ public final class RedisBungee extends Plugin {
                 try (Jedis rsc = pool.getResource()) {
                     long redisTime = getRedisTime(rsc.time());
                     rsc.hset("heartbeats", configuration.getServerId(), String.valueOf(redisTime));
+                    lastHeartbeat = System.currentTimeMillis();
                 } catch (JedisConnectionException e)
                 {
                     // Redis server has disappeared!

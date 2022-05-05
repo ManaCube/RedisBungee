@@ -348,9 +348,11 @@ class RedisBungeeCommands {
             TextComponent poolActiveStat = new TextComponent("Currently active pool objects: " + plugin.getPool().getNumActive());
             TextComponent poolIdleStat = new TextComponent("Currently idle pool objects: " + plugin.getPool().getNumIdle());
             TextComponent poolWaitingStat = new TextComponent("Waiting on free objects: " + plugin.getPool().getNumWaiters());
+            sender.sendMessage(new TextComponent("ID: " + RedisBungee.getApi().getServerId()));
             sender.sendMessage(poolActiveStat);
             sender.sendMessage(poolIdleStat);
             sender.sendMessage(poolWaitingStat);
+            sender.sendMessage(new TextComponent("Last heartbeat: " + (System.currentTimeMillis() - plugin.lastHeartbeat) + "ms ago"));
         }
     }
 }
