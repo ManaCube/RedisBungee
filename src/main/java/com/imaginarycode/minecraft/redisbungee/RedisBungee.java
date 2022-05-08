@@ -252,7 +252,7 @@ public final class RedisBungee extends Plugin {
 
                 if (getConfiguration().getPurgeLastSeenAtLimit() > 0 && lastSeenCache.size() >= getConfiguration().getPurgeLastSeenAtLimit())
                 {
-                    System.out.println("Purging any last-seen keys past 7 days");
+                    System.out.println("Purging any last-seen keys past " + configuration.getPurgeAfterDays() + " days");
                     int purgeCount = 0;
 
                     while (namesIterator.hasNext())
