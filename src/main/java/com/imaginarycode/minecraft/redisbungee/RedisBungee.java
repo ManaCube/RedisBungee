@@ -247,6 +247,37 @@ public final class RedisBungee extends Plugin {
         }
         if (pool != null) {
             try (Jedis tmpRsc = pool.getResource()) {
+                Set<String>      lastSeenCache = tmpRsc.keys("player:*");
+                Iterator<String> namesIterator = lastSeenCache.iterator();
+
+                if (getConfiguration().getPurgeLastSeenAtLimit() > 0 && lastSeenCache.size() >= getConfiguration().getPurgeLastSeenAtLimit())
+                {
+                    System.out.println("Purging any last-seen keys past 7 days");
+                    int purgeCount = 0;
+
+                    while (namesIterator.hasNext())
+                    {
+                        String key = namesIterator.next();
+
+                        //Player is currently online on a server, keep in-cache
+                        if (tmpRsc.hget(key, "server") == null)
+                        {
+                            String result = tmpRsc.hget(key, "online");
+
+                            if (result == null || TimeUnit.MILLISECONDS.toDays(System.currentTimeMillis() - Long.parseLong(result)) > configuration.getPurgeAfterDays())
+                            {
+                                tmpRsc.del(namesIterator.next());
+                                purgeCount++;
+                            }
+                        }
+                    }
+
+                    if (purgeCount > 0)
+                    {
+                        System.out.println("Successfully purged " + purgeCount + " last-seen entries");
+                    }
+                }
+
                 // This is more portable than INFO <section>
                 String info = tmpRsc.info();
                 for (String s : info.split("\r\n")) {
