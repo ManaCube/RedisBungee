@@ -248,6 +248,7 @@ public class RedisBungeeListener implements Listener {
                     ((Server) event.getSender()).sendData(currentChannel, out.toByteArray());
                 }
             });
+            event.setCancelled(true);
         }
     }
 
