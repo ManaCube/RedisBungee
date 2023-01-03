@@ -27,7 +27,7 @@ public class RedisBungeeConfiguration {
         this.pool = pool;
         this.serverId = configuration.getString("server-id");
         this.registerBungeeCommands = configuration.getBoolean("register-bungee-commands", true);
-        this.purgeLastSeenAtLimit   = configuration.getInt("purge-last-seen-user-limit", 100000);
+        this.purgeLastSeenAtLimit   = configuration.getInt("purge-last-seen-user-limit", 30000);
         this.purgeAfterDays         = configuration.getInt("purge-after-x-days", 7);
 
         List<String> stringified = configuration.getStringList("exempt-ip-addresses");

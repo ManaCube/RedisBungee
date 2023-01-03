@@ -13,6 +13,8 @@ import com.imaginarycode.minecraft.redisbungee.util.uuid.UUIDFetcher;
 import com.imaginarycode.minecraft.redisbungee.util.uuid.UUIDTranslator;
 import com.squareup.okhttp.Dispatcher;
 import com.squareup.okhttp.OkHttpClient;
+import java.text.SimpleDateFormat;
+import java.util.zip.GZIPOutputStream;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -276,6 +278,29 @@ public final class RedisBungee extends Plugin {
                     {
                         System.out.println("Successfully purged " + purgeCount + " last-seen entries");
                     }
+
+                    System.out.println("Fetching UUID cache");
+                    Map<String, String> uuidCache = tmpRsc.hgetAll("uuid-cache");
+
+                    System.out.println("Cleaning out the uuid cache");
+                    int originalSize = uuidCache.size();
+
+                    for (Iterator<Map.Entry<String, String>> it = uuidCache.entrySet().iterator(); it.hasNext(); )
+                    {
+                        CachedUUIDEntry entry = gson.fromJson(it.next().getValue(), CachedUUIDEntry.class);
+
+                        if (entry.expired())
+                        {
+                            it.remove();
+                        }
+                    }
+
+                    int newSize = uuidCache.size();
+
+                    System.out.println("Deleting " + (originalSize - newSize) + " uuid cache records");
+                    tmpRsc.del("uuid-cache");
+                    tmpRsc.hmset("uuid-cache", uuidCache);
+                    System.out.println("Deletion complete.");
                 }
 
                 // This is more portable than INFO <section>
