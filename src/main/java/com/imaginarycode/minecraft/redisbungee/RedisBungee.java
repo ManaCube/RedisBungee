@@ -268,7 +268,7 @@ public final class RedisBungee extends Plugin {
 
                             if (result == null || TimeUnit.MILLISECONDS.toDays(System.currentTimeMillis() - Long.parseLong(result)) > configuration.getPurgeAfterDays())
                             {
-                                tmpRsc.del(namesIterator.next());
+                                tmpRsc.del(key);
                                 purgeCount++;
                             }
                         }
