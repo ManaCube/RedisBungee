@@ -58,7 +58,7 @@ public final class UUIDTranslator {
             return UUID.fromString(player);
         }
 
-        if (MOJANGIAN_UUID_PATTERN.matcher(player).find()) {
+        if (player.length() == 32 && MOJANGIAN_UUID_PATTERN.matcher(player).find()) {
             // Reconstruct the UUID
             return UUIDFetcher.getUUID(player);
         }
