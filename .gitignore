@@ -34,3 +34,6 @@
 *.ipr
 *.iws
 .idea/
+Bungee/out/
+out/RedisBungee.jar
+Velocity/out/
