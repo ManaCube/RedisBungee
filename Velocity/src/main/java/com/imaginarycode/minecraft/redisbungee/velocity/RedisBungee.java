@@ -407,7 +407,7 @@ public final class RedisBungee {
             getProxy().getEventManager().register(this, new RedisBungeeListener(this, configuration.getExemptAddresses()));
             getProxy().getEventManager().register(this, dataManager);
             psl = new PubSubListener();
-            getProxy().getScheduler().buildTask(this, psl);
+            getProxy().getScheduler().buildTask(this, psl).schedule();
 
             integrityCheck = SCHEDULER.scheduleAtFixedRate(() -> {
                 try (Jedis tmpRsc = pool.getResource()) {
