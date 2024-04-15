@@ -2,7 +2,7 @@
   "id": "redisbungee",
   "name": "RedisBungee",
   "version": "${project.version}",
-  "main": "com.imaginarycode.minecraft.redisbungee.velocity.RedisBungee",
+  "main": "com.imaginarycode.minecraft.redisbungee.velocity.RedisVelocity",
   "authors": ["CullanP", "AlexMl"],
   "dependencies": []
 }

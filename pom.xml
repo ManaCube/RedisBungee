@@ -6,7 +6,7 @@
 
     <groupId>com.imaginarycode.minecraft</groupId>
     <artifactId>RedisBungee-Parent</artifactId>
-    <version>0.5.4</version>
+    <version>1.0.0</version>
     <packaging>pom</packaging>
     <name>RedisBungee</name>
 

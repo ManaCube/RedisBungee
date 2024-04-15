@@ -39,7 +39,6 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -48,13 +47,13 @@ import static com.google.common.base.Preconditions.checkArgument;
  * <p>
  * The only function of interest is {@link #getApi()}, which exposes some functions in this class.
  */
-public final class RedisBungee {
+public final class RedisVelocity {
 
     private static final ScheduledExecutorService SCHEDULER = Executors.newScheduledThreadPool(4, new ThreadFactoryBuilder().setNameFormat("RedisBungee %d").build());
 
     @Getter
     private static final Gson gson = new Gson();
-    private static RedisBungeeAPI api;
+    private static RedisVelocityAPI api;
     @Getter(AccessLevel.PACKAGE)
     private static PubSubListener psl = null;
     @Getter
@@ -62,7 +61,7 @@ public final class RedisBungee {
     @Getter
     private UUIDTranslator uuidTranslator;
     @Getter(AccessLevel.PACKAGE)
-    private static RedisBungeeConfiguration configuration;
+    private static RedisVelocityConfiguration configuration;
     @Getter
     private DataManager dataManager;
     @Getter
@@ -101,7 +100,7 @@ public final class RedisBungee {
     private final PluginDescription pluginDescription;
 
     @Inject
-    public RedisBungee(ProxyServer proxy, PluginDescription pluginDescription, Logger logger, @DataDirectory Path pluginDir)
+    public RedisVelocity(ProxyServer proxy, PluginDescription pluginDescription, Logger logger, @DataDirectory Path pluginDir)
     {
         this.proxy = proxy;
         this.logger = logger;
@@ -110,11 +109,11 @@ public final class RedisBungee {
     }
 
     /**
-     * Fetch the {@link RedisBungeeAPI} object created on plugin start.
+     * Fetch the {@link RedisVelocityAPI} object created on plugin start.
      *
-     * @return the {@link RedisBungeeAPI} object
+     * @return the {@link RedisVelocityAPI} object
      */
-    public static RedisBungeeAPI getApi() {
+    public static RedisVelocityAPI getApi() {
         return api;
     }
 
@@ -390,21 +389,21 @@ public final class RedisBungee {
             dataManager = new DataManager(this);
 
             if (configuration.isRegisterBungeeCommands()) {
-                getProxy().getCommandManager().register("glist", new RedisBungeeCommands.GlistCommand(this), "redisbungee", "rglist");
-                getProxy().getCommandManager().register("find", new RedisBungeeCommands.FindCommand(this), "rfind");
-                getProxy().getCommandManager().register("lastseen", new RedisBungeeCommands.LastSeenCommand(this), "rlastseen");
-                getProxy().getCommandManager().register("ip", new RedisBungeeCommands.IpCommand(this), "playerip", "rip", "rplayerip");
+                getProxy().getCommandManager().register("glist", new RedisVelocityCommands.GlistCommand(this), "redisbungee", "rglist");
+                getProxy().getCommandManager().register("find", new RedisVelocityCommands.FindCommand(this), "rfind");
+                getProxy().getCommandManager().register("lastseen", new RedisVelocityCommands.LastSeenCommand(this), "rlastseen");
+                getProxy().getCommandManager().register("ip", new RedisVelocityCommands.IpCommand(this), "playerip", "rip", "rplayerip");
             }
 
-            getProxy().getCommandManager().register("sendtoall", new RedisBungeeCommands.SendToAll(this), "rsendtoall");
-            getProxy().getCommandManager().register("serverid", new RedisBungeeCommands.ServerId(this), "rserverid");
-            getProxy().getCommandManager().register("serverids", new RedisBungeeCommands.ServerIds());
-            getProxy().getCommandManager().register("pproxy", new RedisBungeeCommands.PlayerProxyCommand(this));
-            getProxy().getCommandManager().register("plist", new RedisBungeeCommands.PlistCommand(this), "rplist");
-            getProxy().getCommandManager().register("rdebug", new RedisBungeeCommands.DebugCommand(this));
-            api = new RedisBungeeAPI(this);
+            getProxy().getCommandManager().register("sendtoall", new RedisVelocityCommands.SendToAll(this), "rsendtoall");
+            getProxy().getCommandManager().register("serverid", new RedisVelocityCommands.ServerId(this), "rserverid");
+            getProxy().getCommandManager().register("serverids", new RedisVelocityCommands.ServerIds());
+            getProxy().getCommandManager().register("pproxy", new RedisVelocityCommands.PlayerProxyCommand(this));
+            getProxy().getCommandManager().register("plist", new RedisVelocityCommands.PlistCommand(this), "rplist");
+            getProxy().getCommandManager().register("rdebug", new RedisVelocityCommands.DebugCommand(this));
+            api = new RedisVelocityAPI(this);
 
-            getProxy().getEventManager().register(this, new RedisBungeeListener(this, configuration.getExemptAddresses()));
+            getProxy().getEventManager().register(this, new RedisVelocityListener(this, configuration.getExemptAddresses()));
             getProxy().getEventManager().register(this, dataManager);
             psl = new PubSubListener();
             getProxy().getScheduler().buildTask(this, psl).schedule();
@@ -485,7 +484,7 @@ public final class RedisBungee {
             }, 0, 1, TimeUnit.MINUTES);
         }
 
-        RedisBungeeListener.IDENTIFIERS.forEach(getProxy().getChannelRegistrar()::register);
+        RedisVelocityListener.IDENTIFIERS.forEach(getProxy().getChannelRegistrar()::register);
     }
 
     public void onDisable() {
@@ -584,7 +583,7 @@ public final class RedisBungee {
                     httpClient.setDispatcher(dispatcher);
                     NameFetcher.setHttpClient(httpClient);
                     UUIDFetcher.setHttpClient(httpClient);
-                    RedisBungee.configuration = new RedisBungeeConfiguration(RedisBungee.this.getPool(), configuration);
+                    RedisVelocity.configuration = new RedisVelocityConfiguration(RedisVelocity.this.getPool(), configuration);
                     return null;
                 });
 
@@ -667,7 +666,7 @@ public final class RedisBungee {
         @Override
         public void onMessage(final String s, final String s2) {
             if (s2.trim().length() == 0) return;
-            getProxy().getScheduler().buildTask(RedisBungee.this, new Runnable() {
+            getProxy().getScheduler().buildTask(RedisVelocity.this, new Runnable() {
                 @Override
                 public void run() {
                     getProxy().getEventManager().fireAndForget(new PubSubMessageEvent(s, s2));

@@ -15,15 +15,15 @@ import net.kyori.adventure.permission.PermissionChecker;
  * @since 0.2.3
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class RedisBungeeCommandSender implements CommandSource {
-    private static final RedisBungeeCommandSender singleton;
+public class RedisVelocityCommandSender implements CommandSource {
+    private static final RedisVelocityCommandSender singleton;
     private final PermissionChecker permissionChecker = PermissionChecker.always(net.kyori.adventure.util.TriState.TRUE);
 
     static {
-        singleton = new RedisBungeeCommandSender();
+        singleton = new RedisVelocityCommandSender();
     }
 
-    public static RedisBungeeCommandSender getSingleton() {
+    public static RedisVelocityCommandSender getSingleton() {
         return singleton;
     }
 

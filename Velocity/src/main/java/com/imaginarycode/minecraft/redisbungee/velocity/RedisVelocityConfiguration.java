@@ -9,7 +9,7 @@ import redis.clients.jedis.JedisPool;
 import java.net.InetAddress;
 import java.util.List;
 
-public class RedisBungeeConfiguration {
+public class RedisVelocityConfiguration {
     @Getter
     private final JedisPool pool;
     @Getter
@@ -23,7 +23,7 @@ public class RedisBungeeConfiguration {
     @Getter
     private final List<InetAddress> exemptAddresses;
 
-    public RedisBungeeConfiguration(JedisPool pool, Configuration configuration) {
+    public RedisVelocityConfiguration(JedisPool pool, Configuration configuration) {
         this.pool = pool;
         this.serverId = configuration.getString("server-id");
         this.registerBungeeCommands = configuration.getBoolean("register-bungee-commands", true);

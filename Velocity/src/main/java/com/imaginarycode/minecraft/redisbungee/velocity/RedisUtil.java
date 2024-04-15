@@ -22,13 +22,13 @@ public class RedisUtil {
         InetAddress playerAddress = player.getRemoteAddress().getAddress();
         playerData.put("online", "0");
         playerData.put("ip", playerAddress.getHostAddress());
-        playerData.put("proxy", RedisBungee.getConfiguration().getServerId());
+        playerData.put("proxy", RedisVelocity.getConfiguration().getServerId());
 
-        pipeline.sadd("proxy:" + RedisBungee.getApi().getServerId() + ":usersOnline", player.getUniqueId().toString());
+        pipeline.sadd("proxy:" + RedisVelocity.getApi().getServerId() + ":usersOnline", player.getUniqueId().toString());
         pipeline.hmset("player:" + player.getUniqueId().toString(), playerData);
 
         if (fireEvent) {
-            pipeline.publish("redisbungee-data", RedisBungee.getGson().toJson(new DataManager.DataManagerMessage<>(
+            pipeline.publish("redisbungee-data", RedisVelocity.getGson().toJson(new DataManager.DataManagerMessage<>(
                 player.getUniqueId(), DataManager.DataManagerMessage.Action.JOIN,
                     new DataManager.LoginPayload(playerAddress))));
         }
@@ -39,21 +39,21 @@ public class RedisUtil {
     }
 
     public static void cleanUpPlayer(String player, Jedis rsc) {
-        rsc.srem("proxy:" + RedisBungee.getApi().getServerId() + ":usersOnline", player);
+        rsc.srem("proxy:" + RedisVelocity.getApi().getServerId() + ":usersOnline", player);
         rsc.hdel("player:" + player, "server",  "ip", "proxy");
         long timestamp = System.currentTimeMillis();
         rsc.hset("player:" + player, "online", String.valueOf(timestamp));
-        rsc.publish("redisbungee-data", RedisBungee.getGson().toJson(new DataManager.DataManagerMessage<>(
+        rsc.publish("redisbungee-data", RedisVelocity.getGson().toJson(new DataManager.DataManagerMessage<>(
                 UUID.fromString(player), DataManager.DataManagerMessage.Action.LEAVE,
                 new DataManager.LogoutPayload(timestamp))));
     }
 
     public static void cleanUpPlayer(String player, Pipeline rsc) {
-        rsc.srem("proxy:" + RedisBungee.getApi().getServerId() + ":usersOnline", player);
+        rsc.srem("proxy:" + RedisVelocity.getApi().getServerId() + ":usersOnline", player);
         rsc.hdel("player:" + player, "server", "ip", "proxy");
         long timestamp = System.currentTimeMillis();
         rsc.hset("player:" + player, "online", String.valueOf(timestamp));
-        rsc.publish("redisbungee-data", RedisBungee.getGson().toJson(new DataManager.DataManagerMessage<>(
+        rsc.publish("redisbungee-data", RedisVelocity.getGson().toJson(new DataManager.DataManagerMessage<>(
                 UUID.fromString(player), DataManager.DataManagerMessage.Action.LEAVE,
                 new DataManager.LogoutPayload(timestamp))));
     }

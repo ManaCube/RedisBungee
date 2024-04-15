@@ -1,7 +1,7 @@
 package com.imaginarycode.minecraft.redisbungee.velocity.util.uuid;
 
 import com.google.common.collect.ImmutableList;
-import com.imaginarycode.minecraft.redisbungee.velocity.RedisBungee;
+import com.imaginarycode.minecraft.redisbungee.velocity.RedisVelocity;
 import com.squareup.okhttp.*;
 import lombok.Setter;
 
@@ -39,12 +39,12 @@ public class UUIDFetcher implements Callable<Map<String, UUID>> {
         Map<String, UUID> uuidMap = new HashMap<>();
         int requests = (int) Math.ceil(names.size() / PROFILES_PER_REQUEST);
         for (int i = 0; i < requests; i++) {
-            String body = RedisBungee.getGson().toJson(names.subList(i * 100, Math.min((i + 1) * 100, names.size())));
+            String body = RedisVelocity.getGson().toJson(names.subList(i * 100, Math.min((i + 1) * 100, names.size())));
             Request request = new Request.Builder().url(PROFILE_URL).post(RequestBody.create(JSON, body)).build();
             ResponseBody responseBody = httpClient.newCall(request).execute().body();
             String response = responseBody.string();
             responseBody.close();
-            Profile[] array = RedisBungee.getGson().fromJson(response, Profile[].class);
+            Profile[] array = RedisVelocity.getGson().fromJson(response, Profile[].class);
             for (Profile profile : array) {
                 UUID uuid = UUIDFetcher.getUUID(profile.id);
                 uuidMap.put(profile.name, uuid);

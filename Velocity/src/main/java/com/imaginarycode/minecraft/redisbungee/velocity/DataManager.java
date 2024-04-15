@@ -27,7 +27,6 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 /**
  * This class manages all the data that RedisBungee fetches from Redis, along with updates to that data.
@@ -35,13 +34,13 @@ import java.util.logging.Level;
  * @since 0.3.3
  */
 public class DataManager {
-    private final RedisBungee plugin;
+    private final RedisVelocity plugin;
     private final Cache<UUID, String> serverCache = createCache();
     private final Cache<UUID, String> proxyCache = createCache();
     private final Cache<UUID, InetAddress> ipCache = createCache();
     private final Cache<UUID, Long> lastOnlineCache = createCache();
 
-    public DataManager(RedisBungee plugin) {
+    public DataManager(RedisVelocity plugin) {
         this.plugin = plugin;
     }
 
@@ -86,7 +85,7 @@ public class DataManager {
         Optional<Player> playerOpt = plugin.getProxy().getPlayer(uuid);
 
         if (playerOpt.isPresent()) {
-            return RedisBungee.getConfiguration().getServerId();
+            return RedisVelocity.getConfiguration().getServerId();
         }
 
         try {
@@ -185,14 +184,14 @@ public class DataManager {
 
         String source = jsonObject.get("source").getAsString();
 
-        if (source.equals(RedisBungee.getConfiguration().getServerId()))
+        if (source.equals(RedisVelocity.getConfiguration().getServerId()))
             return;
 
         DataManagerMessage.Action action = DataManagerMessage.Action.valueOf(jsonObject.get("action").getAsString());
 
         switch (action) {
             case JOIN:
-                final DataManagerMessage<LoginPayload> message1 = RedisBungee.getGson().fromJson(jsonObject, new TypeToken<DataManagerMessage<LoginPayload>>() {
+                final DataManagerMessage<LoginPayload> message1 = RedisVelocity.getGson().fromJson(jsonObject, new TypeToken<DataManagerMessage<LoginPayload>>() {
                 }.getType());
                 proxyCache.put(message1.getTarget(), message1.getSource());
                 lastOnlineCache.put(message1.getTarget(), (long) 0);
@@ -205,7 +204,7 @@ public class DataManager {
                 });
                 break;
             case LEAVE:
-                final DataManagerMessage<LogoutPayload> message2 = RedisBungee.getGson().fromJson(jsonObject, new TypeToken<DataManagerMessage<LogoutPayload>>() {
+                final DataManagerMessage<LogoutPayload> message2 = RedisVelocity.getGson().fromJson(jsonObject, new TypeToken<DataManagerMessage<LogoutPayload>>() {
                 }.getType());
                 invalidate(message2.getTarget());
                 lastOnlineCache.put(message2.getTarget(), message2.getPayload().getTimestamp());
@@ -217,7 +216,7 @@ public class DataManager {
                 });
                 break;
             case SERVER_CHANGE:
-                final DataManagerMessage<ServerChangePayload> message3 = RedisBungee.getGson().fromJson(jsonObject, new TypeToken<DataManagerMessage<ServerChangePayload>>() {
+                final DataManagerMessage<ServerChangePayload> message3 = RedisVelocity.getGson().fromJson(jsonObject, new TypeToken<DataManagerMessage<ServerChangePayload>>() {
                 }.getType());
                 serverCache.put(message3.getTarget(), message3.getPayload().getServer());
                 plugin.executeAsync(new Runnable() {
@@ -234,7 +233,7 @@ public class DataManager {
     @RequiredArgsConstructor
     static class DataManagerMessage<T> {
         private final UUID target;
-        private final String source = RedisBungee.getApi().getServerId();
+        private final String source = RedisVelocity.getApi().getServerId();
         private final Action action; // for future use!
         private final T payload;
 

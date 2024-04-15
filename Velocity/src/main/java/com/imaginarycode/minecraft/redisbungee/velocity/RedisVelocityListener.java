@@ -27,12 +27,9 @@ import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.LegacyChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
-import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import lombok.AllArgsConstructor;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.ComponentBuilder;
-import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
@@ -41,7 +38,7 @@ import java.net.InetAddress;
 import java.util.*;
 
 @AllArgsConstructor
-public class RedisBungeeListener {
+public class RedisVelocityListener {
 
     private static final Component ALREADY_LOGGED_IN = Component.text()
                 .append(Component.text("You are already logged on to this server.").color(NamedTextColor.RED))
@@ -60,7 +57,7 @@ public class RedisBungeeListener {
         new LegacyChannelIdentifier("legacy:redisbungee")
     );
 
-    private final RedisBungee plugin;
+    private final RedisVelocity plugin;
     private final List<InetAddress> exemptAddresses;
 
     @Subscribe(order = PostOrder.LAST)
@@ -110,7 +107,7 @@ public class RedisBungeeListener {
         plugin.executeAsync(new RedisCallable<Void>(plugin) {
             @Override
             protected Void call(Jedis jedis) {
-                jedis.publish("redisbungee-data", RedisBungee.getGson().toJson(new DataManager.DataManagerMessage<>(
+                jedis.publish("redisbungee-data", RedisVelocity.getGson().toJson(new DataManager.DataManagerMessage<>(
                         event.getPlayer().getUniqueId(), DataManager.DataManagerMessage.Action.JOIN,
                         new DataManager.LoginPayload(event.getPlayer().getRemoteAddress().getAddress()))));
                 return null;
@@ -139,7 +136,7 @@ public class RedisBungeeListener {
             @Override
             protected Void call(Jedis jedis) {
                 jedis.hset("player:" + event.getPlayer().getUniqueId().toString(), "server", currentServer);
-                jedis.publish("redisbungee-data", RedisBungee.getGson().toJson(new DataManager.DataManagerMessage<>(
+                jedis.publish("redisbungee-data", RedisVelocity.getGson().toJson(new DataManager.DataManagerMessage<>(
                         event.getPlayer().getUniqueId(), DataManager.DataManagerMessage.Action.SERVER_CHANGE,
                         new DataManager.ServerChangePayload(currentServer, currentServer))));
                 return null;
@@ -186,7 +183,7 @@ public class RedisBungeeListener {
                             original = plugin.getPlayers();
                         } else {
                             try {
-                                original = RedisBungee.getApi().getPlayersOnServer(type);
+                                original = RedisVelocity.getApi().getPlayersOnServer(type);
                             } catch (IllegalArgumentException ignored) {
                             }
                         }
@@ -208,7 +205,7 @@ public class RedisBungeeListener {
                             out.writeUTF(type);
 
                             try {
-                                out.writeInt(RedisBungee.getApi().getPlayersOnServer(type).size());
+                                out.writeInt(RedisVelocity.getApi().getPlayersOnServer(type).size());
                             } catch (IllegalArgumentException e) {
                                 out.writeInt(0);
                             }
@@ -219,12 +216,12 @@ public class RedisBungeeListener {
                         String user = in.readUTF();
                         out.writeUTF("LastOnline");
                         out.writeUTF(user);
-                        out.writeLong(RedisBungee.getApi().getLastOnline(plugin.getUuidTranslator().getTranslatedUuid(user, true)));
+                        out.writeLong(RedisVelocity.getApi().getLastOnline(plugin.getUuidTranslator().getTranslatedUuid(user, true)));
                         break;
                     case "ServerPlayers":
                         String type1 = in.readUTF();
                         out.writeUTF("ServerPlayers");
-                        Multimap<String, UUID> multimap = RedisBungee.getApi().getServerToPlayers();
+                        Multimap<String, UUID> multimap = RedisVelocity.getApi().getServerToPlayers();
 
                         boolean includesUsers;
 
@@ -256,13 +253,13 @@ public class RedisBungeeListener {
                         break;
                     case "Proxy":
                         out.writeUTF("Proxy");
-                        out.writeUTF(RedisBungee.getConfiguration().getServerId());
+                        out.writeUTF(RedisVelocity.getConfiguration().getServerId());
                         break;
                     case "PlayerProxy":
                         String username = in.readUTF();
                         out.writeUTF("PlayerProxy");
                         out.writeUTF(username);
-                        out.writeUTF(RedisBungee.getApi().getProxy(plugin.getUuidTranslator().getTranslatedUuid(username, true)));
+                        out.writeUTF(RedisVelocity.getApi().getProxy(plugin.getUuidTranslator().getTranslatedUuid(username, true)));
                         break;
                     default:
                         return;
@@ -302,12 +299,12 @@ public class RedisBungeeListener {
 
     @Subscribe
     public void onPubSubMessage(PubSubMessageEvent event) {
-        if (event.getChannel().equals("redisbungee-allservers") || event.getChannel().equals("redisbungee-" + RedisBungee.getApi().getServerId())) {
+        if (event.getChannel().equals("redisbungee-allservers") || event.getChannel().equals("redisbungee-" + RedisVelocity.getApi().getServerId())) {
             String message = event.getMessage();
             if (message.startsWith("/"))
                 message = message.substring(1);
             plugin.getLogger().info("Invoking command via PubSub: /" + message);
-            plugin.getProxy().getCommandManager().executeAsync(RedisBungeeCommandSender.getSingleton(), message);
+            plugin.getProxy().getCommandManager().executeAsync(RedisVelocityCommandSender.getSingleton(), message);
         }
     }
 }

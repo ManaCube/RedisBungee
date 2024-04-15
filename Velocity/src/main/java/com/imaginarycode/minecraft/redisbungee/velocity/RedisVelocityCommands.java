@@ -4,7 +4,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
-import com.velocitypowered.api.command.Command;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.proxy.server.ServerInfo;
@@ -21,12 +20,12 @@ import net.kyori.adventure.text.format.NamedTextColor;
 /**
  * This class contains subclasses that are used for the commands RedisBungee overrides or includes: /glist, /find and /lastseen.
  * <p>
- * All classes use the {@link RedisBungeeAPI}.
+ * All classes use the {@link RedisVelocityAPI}.
  *
  * @author tuxed
  * @since 0.2.3
  */
-class RedisBungeeCommands {
+class RedisVelocityCommands {
     private static final Component NO_PLAYER_SPECIFIED =
             Component.text("You must specify a player name.", NamedTextColor.RED);
     private static final Component PLAYER_NOT_FOUND =
@@ -39,9 +38,9 @@ class RedisBungeeCommands {
     }
 
     public static class GlistCommand implements SimpleCommand {
-        private final RedisBungee plugin;
+        private final RedisVelocity plugin;
 
-        GlistCommand(RedisBungee plugin) {
+        GlistCommand(RedisVelocity plugin) {
             this.plugin = plugin;
         }
 
@@ -49,11 +48,11 @@ class RedisBungeeCommands {
         public void execute(final Invocation invocation) {
             plugin.getProxy().getScheduler().buildTask(plugin, () -> {
                 CommandSource sender = invocation.source();
-                int count = RedisBungee.getApi().getPlayerCount();
+                int count = RedisVelocity.getApi().getPlayerCount();
                 Component playersOnline = Component.text(playerPlural(count) + " currently online.", NamedTextColor.YELLOW);
 
                 if (invocation.arguments().length > 0 && invocation.arguments()[0].equals("showall")) {
-                    Multimap<String, UUID> serverToPlayers = RedisBungee.getApi().getServerToPlayers();
+                    Multimap<String, UUID> serverToPlayers = RedisVelocity.getApi().getServerToPlayers();
                     Multimap<String, String> human = HashMultimap.create();
                     for (Map.Entry<String, UUID> entry : serverToPlayers.entries()) {
                         human.put(entry.getKey(), plugin.getUuidTranslator().getNameFromUuid(entry.getValue(), false));
@@ -79,9 +78,9 @@ class RedisBungeeCommands {
     }
 
     public static class FindCommand implements SimpleCommand {
-        private final RedisBungee plugin;
+        private final RedisVelocity plugin;
 
-        FindCommand(RedisBungee plugin) {
+        FindCommand(RedisVelocity plugin) {
             this.plugin = plugin;
         }
 
@@ -98,7 +97,7 @@ class RedisBungeeCommands {
                         return;
                     }
 
-                    ServerInfo si = RedisBungee.getApi().getServerFor(uuid);
+                    ServerInfo si = RedisVelocity.getApi().getServerFor(uuid);
 
                     if (si != null) {
                         Component message = Component.text(args[0] + " is on " + si.getName() + ".", NamedTextColor.BLUE);
@@ -119,9 +118,9 @@ class RedisBungeeCommands {
     }
 
     public static class LastSeenCommand implements SimpleCommand {
-        private final RedisBungee plugin;
+        private final RedisVelocity plugin;
 
-        LastSeenCommand(RedisBungee plugin) {
+        LastSeenCommand(RedisVelocity plugin) {
             this.plugin = plugin;
         }
 
@@ -138,7 +137,7 @@ class RedisBungeeCommands {
                         return;
                     }
 
-                    long secs = RedisBungee.getApi().getLastOnline(uuid);
+                    long secs = RedisVelocity.getApi().getLastOnline(uuid);
                     TextComponent.Builder message = Component.text();
                     if (secs == 0) {
                         message.color(NamedTextColor.GREEN);
@@ -164,9 +163,9 @@ class RedisBungeeCommands {
     }
 
     public static class IpCommand implements SimpleCommand {
-        private final RedisBungee plugin;
+        private final RedisVelocity plugin;
 
-        IpCommand(RedisBungee plugin) {
+        IpCommand(RedisVelocity plugin) {
             //super("ip", "redisbungee.command.ip", "playerip", "rip", "rplayerip");
             this.plugin = plugin;
         }
@@ -185,7 +184,7 @@ class RedisBungeeCommands {
                         return;
                     }
 
-                    InetAddress ia = RedisBungee.getApi().getPlayerIp(uuid);
+                    InetAddress ia = RedisVelocity.getApi().getPlayerIp(uuid);
 
                     if (ia != null) {
                         TextComponent message = Component.text(args[0] + " is connected from " + ia.toString() + ".", NamedTextColor.GREEN);
@@ -206,9 +205,9 @@ class RedisBungeeCommands {
     }
 
     public static class PlayerProxyCommand implements SimpleCommand {
-        private final RedisBungee plugin;
+        private final RedisVelocity plugin;
 
-        PlayerProxyCommand(RedisBungee plugin) {
+        PlayerProxyCommand(RedisVelocity plugin) {
             //super("pproxy", "redisbungee.command.pproxy");
             this.plugin = plugin;
         }
@@ -227,7 +226,7 @@ class RedisBungeeCommands {
                         return;
                     }
 
-                    String proxy = RedisBungee.getApi().getProxy(uuid);
+                    String proxy = RedisVelocity.getApi().getProxy(uuid);
 
                     if (proxy != null) {
                         TextComponent message = Component.text(args[0] + " is connected to " + proxy + ".", NamedTextColor.GREEN);
@@ -248,9 +247,9 @@ class RedisBungeeCommands {
     }
 
     public static class SendToAll implements SimpleCommand {
-        private final RedisBungee plugin;
+        private final RedisVelocity plugin;
 
-        SendToAll(RedisBungee plugin) {
+        SendToAll(RedisVelocity plugin) {
             this.plugin = plugin;
         }
 
@@ -260,7 +259,7 @@ class RedisBungeeCommands {
             CommandSource sender = invocation.source();
             if (args.length > 0) {
                 String command = Joiner.on(" ").skipNulls().join(args);
-                RedisBungee.getApi().sendProxyCommand(command);
+                RedisVelocity.getApi().sendProxyCommand(command);
                 TextComponent message = Component.text("Sent the command /" + command + " to all proxies.", NamedTextColor.GREEN);
                 sender.sendMessage(message);
             } else {
@@ -275,15 +274,15 @@ class RedisBungeeCommands {
     }
 
     public static class ServerId implements SimpleCommand {
-        private final RedisBungee plugin;
+        private final RedisVelocity plugin;
 
-        ServerId(RedisBungee plugin) {
+        ServerId(RedisVelocity plugin) {
             this.plugin = plugin;
         }
 
         @Override
         public void execute(Invocation invocation) {
-            invocation.source().sendMessage(Component.text("You are on " + RedisBungee.getApi().getServerId() + ".", NamedTextColor.YELLOW));
+            invocation.source().sendMessage(Component.text("You are on " + RedisVelocity.getApi().getServerId() + ".", NamedTextColor.YELLOW));
         }
 
         @Override
@@ -299,7 +298,7 @@ class RedisBungeeCommands {
         @Override
         public void execute(Invocation invocation) {
             invocation.source().sendMessage(
-                Component.text("All server IDs: " + Joiner.on(", ").join(RedisBungee.getApi().getAllServers()), NamedTextColor.YELLOW));
+                Component.text("All server IDs: " + Joiner.on(", ").join(RedisVelocity.getApi().getAllServers()), NamedTextColor.YELLOW));
         }
 
         @Override
@@ -309,9 +308,9 @@ class RedisBungeeCommands {
     }
 
     public static class PlistCommand implements SimpleCommand {
-        private final RedisBungee plugin;
+        private final RedisVelocity plugin;
 
-        PlistCommand(RedisBungee plugin) {
+        PlistCommand(RedisVelocity plugin) {
             //super("plist", "redisbungee.command.plist", "rplist");
             this.plugin = plugin;
         }
@@ -321,18 +320,18 @@ class RedisBungeeCommands {
             CommandSource sender = invocation.source();
             String[] args = invocation.arguments();
             plugin.getProxy().getScheduler().buildTask(plugin, () -> {
-                String proxy = args.length >= 1 ? args[0] : RedisBungee.getConfiguration().getServerId();
+                String proxy = args.length >= 1 ? args[0] : RedisVelocity.getConfiguration().getServerId();
 
                 if (!plugin.getServerIds().contains(proxy)) {
                     sender.sendMessage(Component.text(proxy + " is not a valid proxy. See /serverids for valid proxies.", NamedTextColor.RED));
                     return;
                 }
 
-                Set<UUID> players = RedisBungee.getApi().getPlayersOnProxy(proxy);
+                Set<UUID> players = RedisVelocity.getApi().getPlayersOnProxy(proxy);
                 Component playersOnline = Component.text(playerPlural(players.size()) + " currently on proxy " + proxy + ".", NamedTextColor.YELLOW);
 
                 if (args.length >= 2 && args[1].equals("showall")) {
-                    Multimap<String, UUID> serverToPlayers = RedisBungee.getApi().getServerToPlayers();
+                    Multimap<String, UUID> serverToPlayers = RedisVelocity.getApi().getServerToPlayers();
                     Multimap<String, String> human = HashMultimap.create();
 
                     for (Map.Entry<String, UUID> entry : serverToPlayers.entries()) {
@@ -363,9 +362,9 @@ class RedisBungeeCommands {
     }
 
     public static class DebugCommand implements SimpleCommand {
-        private final RedisBungee plugin;
+        private final RedisVelocity plugin;
 
-        DebugCommand(RedisBungee plugin) {
+        DebugCommand(RedisVelocity plugin) {
             this.plugin = plugin;
         }
 
@@ -375,7 +374,7 @@ class RedisBungeeCommands {
             TextComponent poolActiveStat = Component.text("Currently active pool objects: " + plugin.getPool().getNumActive());
             TextComponent poolIdleStat = Component.text("Currently idle pool objects: " + plugin.getPool().getNumIdle());
             TextComponent poolWaitingStat = Component.text("Waiting on free objects: " + plugin.getPool().getNumWaiters());
-            sender.sendMessage(Component.text("ID: " + RedisBungee.getApi().getServerId()));
+            sender.sendMessage(Component.text("ID: " + RedisVelocity.getApi().getServerId()));
             sender.sendMessage(poolActiveStat);
             sender.sendMessage(poolIdleStat);
             sender.sendMessage(poolWaitingStat);

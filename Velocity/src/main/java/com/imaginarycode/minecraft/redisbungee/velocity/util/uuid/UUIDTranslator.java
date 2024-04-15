@@ -3,7 +3,7 @@ package com.imaginarycode.minecraft.redisbungee.velocity.util.uuid;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.imaginarycode.minecraft.redisbungee.velocity.RedisBungee;
+import com.imaginarycode.minecraft.redisbungee.velocity.RedisVelocity;
 import com.velocitypowered.api.proxy.Player;
 import lombok.Getter;
 import lombok.NonNull;
@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 public final class UUIDTranslator {
     private static final Pattern UUID_PATTERN = Pattern.compile("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}");
     private static final Pattern MOJANGIAN_UUID_PATTERN = Pattern.compile("[a-fA-F0-9]{32}");
-    private final RedisBungee plugin;
+    private final RedisVelocity plugin;
     private final Map<String, CachedUUIDEntry> nameToUuidMap = new ConcurrentHashMap<>(128, 0.5f, 4);
     private final Map<UUID, CachedUUIDEntry> uuidToNameMap = new ConcurrentHashMap<>(128, 0.5f, 4);
 
@@ -75,7 +75,7 @@ public final class UUIDTranslator {
             String stored = jedis.hget("uuid-cache", player.toLowerCase());
             if (stored != null) {
                 // Found an entry value. Deserialize it.
-                CachedUUIDEntry entry = RedisBungee.getGson().fromJson(stored, CachedUUIDEntry.class);
+                CachedUUIDEntry entry = RedisVelocity.getGson().fromJson(stored, CachedUUIDEntry.class);
 
                 // Check for expiry:
                 if (entry.expired()) {
@@ -135,7 +135,7 @@ public final class UUIDTranslator {
             String stored = jedis.hget("uuid-cache", player.toString());
             if (stored != null) {
                 // Found an entry value. Deserialize it.
-                CachedUUIDEntry entry = RedisBungee.getGson().fromJson(stored, CachedUUIDEntry.class);
+                CachedUUIDEntry entry = RedisVelocity.getGson().fromJson(stored, CachedUUIDEntry.class);
 
                 // Check for expiry:
                 if (entry.expired()) {
@@ -177,13 +177,13 @@ public final class UUIDTranslator {
 
     public final void persistInfo(String name, UUID uuid, Jedis jedis) {
         addToMaps(name, uuid);
-        String json = RedisBungee.getGson().toJson(uuidToNameMap.get(uuid));
+        String json = RedisVelocity.getGson().toJson(uuidToNameMap.get(uuid));
         jedis.hmset("uuid-cache", ImmutableMap.of(name.toLowerCase(), json, uuid.toString(), json));
     }
 
     public final void persistInfo(String name, UUID uuid, Pipeline jedis) {
         addToMaps(name, uuid);
-        String json = RedisBungee.getGson().toJson(uuidToNameMap.get(uuid));
+        String json = RedisVelocity.getGson().toJson(uuidToNameMap.get(uuid));
         jedis.hmset("uuid-cache", ImmutableMap.of(name.toLowerCase(), json, uuid.toString(), json));
     }
 

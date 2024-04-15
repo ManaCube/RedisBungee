@@ -1,7 +1,7 @@
 package com.imaginarycode.minecraft.redisbungee.velocity.util.uuid;
 
 import com.google.gson.reflect.TypeToken;
-import com.imaginarycode.minecraft.redisbungee.velocity.RedisBungee;
+import com.imaginarycode.minecraft.redisbungee.velocity.RedisVelocity;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.ResponseBody;
@@ -29,7 +29,7 @@ public class NameFetcher {
 
         Type listType = new TypeToken<List<Name>>() {
         }.getType();
-        List<Name> names = RedisBungee.getGson().fromJson(response, listType);
+        List<Name> names = RedisVelocity.getGson().fromJson(response, listType);
 
         List<String> humanNames = new ArrayList<>();
         for (Name name : names) {

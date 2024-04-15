@@ -1,6 +1,6 @@
 package com.imaginarycode.minecraft.redisbungee.velocity.util;
 
-import com.imaginarycode.minecraft.redisbungee.velocity.RedisBungee;
+import com.imaginarycode.minecraft.redisbungee.velocity.RedisVelocity;
 import lombok.RequiredArgsConstructor;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisDataException;
@@ -9,7 +9,7 @@ import java.util.List;
 
 @RequiredArgsConstructor
 public class LuaManager {
-    private final RedisBungee plugin;
+    private final RedisVelocity plugin;
 
     public Script createScript(String script) {
         try (Jedis jedis = plugin.getPool().getResource()) {

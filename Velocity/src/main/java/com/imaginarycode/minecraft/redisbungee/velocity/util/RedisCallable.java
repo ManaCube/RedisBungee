@@ -1,6 +1,6 @@
 package com.imaginarycode.minecraft.redisbungee.velocity.util;
 
-import com.imaginarycode.minecraft.redisbungee.velocity.RedisBungee;
+import com.imaginarycode.minecraft.redisbungee.velocity.RedisVelocity;
 import lombok.AllArgsConstructor;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
@@ -9,7 +9,7 @@ import java.util.concurrent.Callable;
 
 @AllArgsConstructor
 public abstract class RedisCallable<T> implements Callable<T>, Runnable {
-    private final RedisBungee plugin;
+    private final RedisVelocity plugin;
 
     @Override
     public T call() {
