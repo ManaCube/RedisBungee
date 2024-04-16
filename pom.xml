@@ -129,6 +129,8 @@
                 <filtering>true</filtering>
                 <includes>
                     <include>**/plugin.yml</include>
+                    <include>**/bungee.yml</include>
+                    <include>**/velocity-plugin.json</include>
                 </includes>
             </resource>
             <resource>
@@ -136,6 +138,8 @@
                 <filtering>false</filtering>
                 <excludes>
                     <exclude>**/plugin.yml</exclude>
+                    <exclude>**/bungee.yml</exclude>
+                    <exclude>**/velocity-plugin.json</exclude>
                 </excludes>
             </resource>
         </resources>
