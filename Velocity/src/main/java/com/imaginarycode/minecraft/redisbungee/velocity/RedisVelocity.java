@@ -671,7 +671,7 @@ public final class RedisVelocity {
                 public void run() {
                     getProxy().getEventManager().fireAndForget(new PubSubMessageEvent(s, s2));
                 }
-            });
+            }).schedule();
         }
     }
 
