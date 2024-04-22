@@ -4,48 +4,15 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.imaginarycode.minecraft</groupId>
-    <artifactId>RedisBungee-Parent</artifactId>
-    <version>1.0.0</version>
-    <packaging>pom</packaging>
-    <name>RedisBungee</name>
+    <parent>
+        <groupId>com.imaginarycode.minecraft</groupId>
+        <artifactId>RedisBungee-Parent</artifactId>
+        <version>1.0.0</version>
+    </parent>
 
-    <modules>
-        <module>Velocity</module>
-        <module>Bungee</module>
-        <module>Complete</module>
-    </modules>
-
-    <repositories>
-        <repository>
-            <id>bungeecord-repo</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </repository>
-        <repository>
-            <id>velocity-repo</id>
-            <url>https://repo.papermc.io/repository/maven-public/</url>
-        </repository>
-    </repositories>
+    <artifactId>RedisBungee</artifactId>
 
     <dependencies>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>1.18.32</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>redis.clients</groupId>
-            <artifactId>jedis</artifactId>
-            <version>2.9.0</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.squareup.okhttp</groupId>
-            <artifactId>okhttp</artifactId>
-            <version>2.7.5</version>
-            <scope>compile</scope>
-        </dependency>
         <dependency>
             <groupId>com.ayanix</groupId>
             <artifactId>Panther</artifactId>
@@ -53,16 +20,16 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-pool2</artifactId>
-            <version>2.11.1</version>
+            <groupId>com.imaginarycode.minecraft</groupId>
+            <artifactId>RedisBungee-Velocity</artifactId>
+            <version>${project.parent.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.13.2</version>
-            <scope>test</scope>
+            <groupId>com.imaginarycode.minecraft</groupId>
+            <artifactId>RedisBungee-Bungee</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
@@ -80,13 +47,43 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.2</version>
+                <version>3.3.0-SNAPSHOT</version>
                 <configuration>
+                    <minimizeJar>false</minimizeJar>
                     <createDependencyReducedPom>false</createDependencyReducedPom>
                     <relocations>
                         <relocation>
+                            <pattern>org.json</pattern>
+                            <shadedPattern>com.imaginarycode.minecraft.redisbungee.json</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>redis.clients.jedis</pattern>
+                            <shadedPattern>com.imaginarycode.minecraft.redisbungee.internal.jedis
+                            </shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>redis.clients.util</pattern>
+                            <shadedPattern>com.imaginarycode.minecraft.redisbungee.internal.jedisutil
+                            </shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.apache.commons.pool</pattern>
+                            <shadedPattern>com.imaginarycode.minecraft.redisbungee.internal.commonspool
+                            </shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>com.squareup.okhttp</pattern>
+                            <shadedPattern>com.imaginarycode.minecraft.redisbungee.internal.okhttp
+                            </shadedPattern>
+                        </relocation>
+                        <relocation>
                             <pattern>com.ayanix.panther</pattern>
                             <shadedPattern>com.imaginarycode.minecraft.redisbungee.panther</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>okio</pattern>
+                            <shadedPattern>com.imaginarycode.minecraft.redisbungee.internal.okio
+                            </shadedPattern>
                         </relocation>
                     </relocations>
                 </configuration>
@@ -102,10 +99,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.3.0</version>
+                <version>3.2.0</version>
                 <configuration>
                     <finalName>${project.name}</finalName>
-                    <outputDirectory>${project.basedir}/out/</outputDirectory>
+                    <outputDirectory>${project.basedir}/../out/</outputDirectory>
                 </configuration>
             </plugin>
             <plugin>
@@ -123,26 +120,6 @@
                 </executions>
             </plugin>
         </plugins>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-                <includes>
-                    <include>**/plugin.yml</include>
-                    <include>**/bungee.yml</include>
-                    <include>**/velocity-plugin.json</include>
-                </includes>
-            </resource>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>false</filtering>
-                <excludes>
-                    <exclude>**/plugin.yml</exclude>
-                    <exclude>**/bungee.yml</exclude>
-                    <exclude>**/velocity-plugin.json</exclude>
-                </excludes>
-            </resource>
-        </resources>
     </build>
 
 </project>

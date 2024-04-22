@@ -1,0 +1,7 @@
+name: RedisBungee
+main : com.imaginarycode.minecraft.redisbungee.RedisBungee
+version: 1.0.0
+author: Bloodsplat
+authors:
+  - CullanP
+  - Boomclaw

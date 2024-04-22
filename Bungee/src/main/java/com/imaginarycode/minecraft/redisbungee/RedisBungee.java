@@ -13,8 +13,6 @@ import com.imaginarycode.minecraft.redisbungee.util.uuid.UUIDFetcher;
 import com.imaginarycode.minecraft.redisbungee.util.uuid.UUIDTranslator;
 import com.squareup.okhttp.Dispatcher;
 import com.squareup.okhttp.OkHttpClient;
-import java.text.SimpleDateFormat;
-import java.util.zip.GZIPOutputStream;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -429,8 +427,20 @@ public final class RedisBungee extends Plugin {
                     }
 
                     pipeline.sync();
+
+                    final long          time       = getRedisTime(tmpRsc.time());
+                    Map<String, String> heartbeats = tmpRsc.hgetAll("heartbeats");
+                    for (Map.Entry<String, String> entry : heartbeats.entrySet())
+                    {
+                        long stamp = Long.parseLong(entry.getValue());
+                        if (time - stamp > 3600)
+                        {
+                            tmpRsc.hdel("heartbeats", entry.getKey());
+                            getLogger().info("Heartbeat of " + entry.getKey() + " was removed because it has been inactive for more than 1 hour.");
+                        }
+                    }
                 } catch (Throwable e) {
-                    getLogger().log(Level.SEVERE, "Unable to fix up stored player data", e);
+                    getLogger().log(Level.SEVERE, "Unable to run integrity checks", e);
                 }
             }, 0, 1, TimeUnit.MINUTES);
         }
