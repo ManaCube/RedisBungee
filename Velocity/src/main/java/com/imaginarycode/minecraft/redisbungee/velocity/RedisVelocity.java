@@ -147,7 +147,7 @@ public final class RedisVelocity {
                 {
                     long stamp = Long.parseLong(entry.getValue());
 
-                    if (!lagged || time >= stamp + 1000) {
+                    if (!lagged || time >= stamp + 50) {
                         servers.add(entry.getKey());
                     }
 
@@ -159,6 +159,7 @@ public final class RedisVelocity {
                 {
                 }
             }
+
             return servers.build();
         } catch (JedisConnectionException e)
         {
@@ -425,83 +426,7 @@ public final class RedisVelocity {
             psl = new PubSubListener();
             getProxy().getScheduler().buildTask(this, psl).schedule();
 
-            integrityCheck = SCHEDULER.scheduleAtFixedRate(() -> {
-                try (Jedis tmpRsc = pool.getResource()) {
-                    Set<String> players = getLocalPlayersAsUuidStrings();
-                    Set<String> playersInRedis = tmpRsc.smembers("proxy:" + configuration.getServerId() + ":usersOnline");
-                    List<String> lagged = getCurrentServerIds(false, true);
-
-                    // Clean up lagged players.
-                    for (String s : lagged) {
-                        Set<String> laggedPlayers = tmpRsc.smembers("proxy:" + s + ":usersOnline");
-                        tmpRsc.del("proxy:" + s + ":usersOnline");
-
-                        if (!laggedPlayers.isEmpty()) {
-                            getLogger().info("Cleaning up lagged proxy " + s + " (" + laggedPlayers.size() + " players)...");
-
-                            for (String laggedPlayer : laggedPlayers) {
-                                RedisUtil.cleanUpPlayer(laggedPlayer, tmpRsc);
-                            }
-                        }
-                    }
-
-                    Set<String> absentLocally = new HashSet<>(playersInRedis);
-                    absentLocally.removeAll(players);
-
-                    Set<String> absentInRedis = new HashSet<>(players);
-                    absentInRedis.removeAll(playersInRedis);
-
-                    for (String member : absentLocally) {
-                        boolean found = false;
-                        for (String proxyId : getServerIds()) {
-                            if (proxyId.equals(configuration.getServerId())) continue;
-                            if (tmpRsc.sismember("proxy:" + proxyId + ":usersOnline", member)) {
-                                // Just clean up the set.
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found) {
-                            RedisUtil.cleanUpPlayer(member, tmpRsc);
-                            getLogger().warn("Player found in set that was not found locally and globally: " + member);
-                        } else {
-                            tmpRsc.srem("proxy:" + configuration.getServerId() + ":usersOnline", member);
-                            getLogger().warn("Player found in set that was not found locally, but is on another proxy: " + member);
-                        }
-                    }
-
-                    Pipeline pipeline = tmpRsc.pipelined();
-
-                    for (String player : absentInRedis) {
-                        // Player not online according to Redis but not BungeeCord.
-                        getLogger().warn("Player " + player + " is on the proxy but not in Redis.");
-
-                        Optional<Player> proxiedPlayer = proxy.getPlayer(UUID.fromString(player));
-
-                        if (!proxiedPlayer.isPresent())
-                            continue; // We'll deal with it later.
-
-                        RedisUtil.createPlayer(proxiedPlayer.get(), pipeline, true);
-                    }
-
-                    pipeline.sync();
-
-                    final long          time       = getRedisTime(tmpRsc.time());
-                    Map<String, String> heartbeats = tmpRsc.hgetAll("heartbeats");
-
-                    for (Map.Entry<String, String> entry : heartbeats.entrySet())
-                    {
-                        long stamp = Long.parseLong(entry.getValue());
-                        if (time - stamp > 3600)
-                        {
-                            tmpRsc.hdel("heartbeats", entry.getKey());
-                            getLogger().info("Heartbeat of " + entry.getKey() + " was removed because it has been inactive for more than 1 hour.");
-                        }
-                    }
-                } catch (Throwable e) {
-                    getLogger().warn("Unable to run integrity checks", e);
-                }
-            }, 0, 1, TimeUnit.MINUTES);
+            integrityCheck = SCHEDULER.scheduleAtFixedRate(this::checkIntegrity, 0, 10, TimeUnit.SECONDS);
         }
 
         RedisVelocityListener.IDENTIFIERS.forEach(getProxy().getChannelRegistrar()::register);
@@ -582,7 +507,6 @@ public final class RedisVelocity {
             // Test the connection
             try (Jedis rsc = pool.getResource()) {
                 rsc.ping();
-                rsc.sync();
 
                 // If that worked, now we can check for an existing, alive Bungee:
                 if (rsc.hexists("heartbeats", serverId)) {
@@ -705,5 +629,84 @@ public final class RedisVelocity {
 
     public void executeAsyncLater(Runnable runnable, TimeUnit timeUnit, long time) {
         this.getProxy().getScheduler().buildTask(this, runnable).delay(time, timeUnit).schedule();
+    }
+
+    private void checkIntegrity() {
+        try (Jedis tmpRsc = pool.getResource()) {
+            Set<String> players = getLocalPlayersAsUuidStrings();
+            Set<String> playersInRedis = tmpRsc.smembers("proxy:" + configuration.getServerId() + ":usersOnline");
+            List<String> lagged = getCurrentServerIds(false, true);
+
+            // Clean up lagged players.
+            for (String s : lagged) {
+                Set<String> laggedPlayers = tmpRsc.smembers("proxy:" + s + ":usersOnline");
+                tmpRsc.del("proxy:" + s + ":usersOnline");
+
+                if (!laggedPlayers.isEmpty()) {
+                    getLogger().info("Cleaning up lagged proxy " + s + " (" + laggedPlayers.size() + " players)...");
+
+                    for (String laggedPlayer : laggedPlayers) {
+                        RedisUtil.cleanUpPlayer(laggedPlayer, tmpRsc);
+                    }
+                }
+            }
+
+            Set<String> absentLocally = new HashSet<>(playersInRedis);
+            absentLocally.removeAll(players);
+
+            Set<String> absentInRedis = new HashSet<>(players);
+            absentInRedis.removeAll(playersInRedis);
+
+            for (String member : absentLocally) {
+                boolean found = false;
+                for (String proxyId : getServerIds()) {
+                    if (proxyId.equals(configuration.getServerId())) continue;
+                    if (tmpRsc.sismember("proxy:" + proxyId + ":usersOnline", member)) {
+                        // Just clean up the set.
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    RedisUtil.cleanUpPlayer(member, tmpRsc);
+                    getLogger().warn("Player found in set that was not found locally and globally: " + member);
+                } else {
+                    tmpRsc.srem("proxy:" + configuration.getServerId() + ":usersOnline", member);
+                    getLogger().warn("Player found in set that was not found locally, but is on another proxy: " + member);
+                }
+            }
+
+            Pipeline pipeline = tmpRsc.pipelined();
+
+            for (String player : absentInRedis) {
+                // Player not online according to Redis but not BungeeCord.
+                getLogger().warn("Player " + player + " is on the proxy but not in Redis.");
+
+                Optional<Player> proxiedPlayer = proxy.getPlayer(UUID.fromString(player));
+
+                if (!proxiedPlayer.isPresent())
+                    continue; // We'll deal with it later.
+
+                RedisUtil.createPlayer(proxiedPlayer.get(), pipeline, true);
+            }
+
+            pipeline.sync();
+
+            final long          time       = getRedisTime(tmpRsc.time());
+            Map<String, String> heartbeats = tmpRsc.hgetAll("heartbeats");
+
+            for (Map.Entry<String, String> entry : heartbeats.entrySet())
+            {
+                long stamp = Long.parseLong(entry.getValue());
+
+                if (time - stamp > 3600)
+                {
+                    tmpRsc.hdel("heartbeats", entry.getKey());
+                    getLogger().info("Heartbeat of " + entry.getKey() + " was removed because it has been inactive for more than 1 hour.");
+                }
+            }
+        } catch (Throwable e) {
+            getLogger().warn("Unable to run integrity checks", e);
+        }
     }
 }
