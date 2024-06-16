@@ -371,81 +371,11 @@ public final class RedisBungee extends Plugin {
             psl = new PubSubListener();
             getProxy().getScheduler().runAsync(this, psl);
 
-            integrityCheck = SCHEDULER.scheduleAtFixedRate(() -> {
-                try (Jedis tmpRsc = pool.getResource()) {
-                    Set<String> players = getLocalPlayersAsUuidStrings();
-                    Set<String> playersInRedis = tmpRsc.smembers("proxy:" + configuration.getServerId() + ":usersOnline");
-                    List<String> lagged = getCurrentServerIds(false, true);
-
-                    // Clean up lagged players.
-                    for (String s : lagged) {
-                        Set<String> laggedPlayers = tmpRsc.smembers("proxy:" + s + ":usersOnline");
-                        tmpRsc.del("proxy:" + s + ":usersOnline");
-                        if (!laggedPlayers.isEmpty()) {
-                            getLogger().info("Cleaning up lagged proxy " + s + " (" + laggedPlayers.size() + " players)...");
-                            for (String laggedPlayer : laggedPlayers) {
-                                RedisUtil.cleanUpPlayer(laggedPlayer, tmpRsc);
-                            }
-                        }
-                    }
-
-                    Set<String> absentLocally = new HashSet<>(playersInRedis);
-                    absentLocally.removeAll(players);
-                    Set<String> absentInRedis = new HashSet<>(players);
-                    absentInRedis.removeAll(playersInRedis);
-
-                    for (String member : absentLocally) {
-                        boolean found = false;
-                        for (String proxyId : getServerIds()) {
-                            if (proxyId.equals(configuration.getServerId())) continue;
-                            if (tmpRsc.sismember("proxy:" + proxyId + ":usersOnline", member)) {
-                                // Just clean up the set.
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found) {
-                            RedisUtil.cleanUpPlayer(member, tmpRsc);
-                            getLogger().warning("Player found in set that was not found locally and globally: " + member);
-                        } else {
-                            tmpRsc.srem("proxy:" + configuration.getServerId() + ":usersOnline", member);
-                            getLogger().warning("Player found in set that was not found locally, but is on another proxy: " + member);
-                        }
-                    }
-
-                    Pipeline pipeline = tmpRsc.pipelined();
-
-                    for (String player : absentInRedis) {
-                        // Player not online according to Redis but not BungeeCord.
-                        getLogger().warning("Player " + player + " is on the proxy but not in Redis.");
-
-                        ProxiedPlayer proxiedPlayer = ProxyServer.getInstance().getPlayer(UUID.fromString(player));
-                        if (proxiedPlayer == null)
-                            continue; // We'll deal with it later.
-
-                        RedisUtil.createPlayer(proxiedPlayer, pipeline, true);
-                    }
-
-                    pipeline.sync();
-
-                    final long          time       = getRedisTime(tmpRsc.time());
-                    Map<String, String> heartbeats = tmpRsc.hgetAll("heartbeats");
-                    for (Map.Entry<String, String> entry : heartbeats.entrySet())
-                    {
-                        long stamp = Long.parseLong(entry.getValue());
-                        if (time - stamp > 3600)
-                        {
-                            tmpRsc.hdel("heartbeats", entry.getKey());
-                            getLogger().info("Heartbeat of " + entry.getKey() + " was removed because it has been inactive for more than 1 hour.");
-                        }
-                    }
-                } catch (Throwable e) {
-                    getLogger().log(Level.SEVERE, "Unable to run integrity checks", e);
-                }
-            }, 0, 1, TimeUnit.MINUTES);
+            integrityCheck = SCHEDULER.scheduleAtFixedRate(this::checkIntegrity, 0, 10, TimeUnit.SECONDS);
         }
         getProxy().registerChannel("legacy:redisbungee");
         getProxy().registerChannel("RedisBungee");
+        checkIntegrity();
     }
 
     @Override
@@ -649,6 +579,87 @@ public final class RedisBungee extends Plugin {
                     getProxy().getPluginManager().callEvent(new PubSubMessageEvent(s, s2));
                 }
             });
+        }
+    }
+
+    private void checkIntegrity() {
+        try (Jedis tmpRsc = pool.getResource()) {
+            Set<String> players = getLocalPlayersAsUuidStrings();
+            Set<String> playersInRedis = tmpRsc.smembers("proxy:" + configuration.getServerId() + ":usersOnline");
+            List<String> lagged = getCurrentServerIds(false, true);
+
+            // Clean up lagged players.
+            for (String s : lagged) {
+                Set<String> laggedPlayers = tmpRsc.smembers("proxy:" + s + ":usersOnline");
+                tmpRsc.del("proxy:" + s + ":usersOnline");
+
+                if (!laggedPlayers.isEmpty()) {
+                    getLogger().info("Cleaning up lagged proxy " + s + " (" + laggedPlayers.size() + " players)...");
+
+                    for (String laggedPlayer : laggedPlayers) {
+                        RedisUtil.cleanUpPlayer(laggedPlayer, tmpRsc);
+                    }
+                }
+            }
+
+            Set<String> absentLocally = new HashSet<>(playersInRedis);
+            absentLocally.removeAll(players);
+
+            Set<String> absentInRedis = new HashSet<>(players);
+            absentInRedis.removeAll(playersInRedis);
+
+            for (String member : absentLocally) {
+                boolean found = false;
+
+                for (String proxyId : getServerIds()) {
+                    if (proxyId.equals(configuration.getServerId())) continue;
+
+                    if (tmpRsc.sismember("proxy:" + proxyId + ":usersOnline", member)) {
+                        // Just clean up the set.
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    RedisUtil.cleanUpPlayer(member, tmpRsc);
+                    getLogger().warning("Player found in set that was not found locally and globally: " + member);
+                } else {
+                    tmpRsc.srem("proxy:" + configuration.getServerId() + ":usersOnline", member);
+                    getLogger().warning("Player found in set that was not found locally, but is on another proxy: " + member);
+                }
+            }
+
+            Pipeline pipeline = tmpRsc.pipelined();
+
+            for (String player : absentInRedis) {
+                // Player not online according to Redis but not BungeeCord.
+                getLogger().warning("Player " + player + " is on the proxy but not in Redis.");
+
+                ProxiedPlayer proxiedPlayer = ProxyServer.getInstance().getPlayer(UUID.fromString(player));
+                if (proxiedPlayer == null)
+                    continue; // We'll deal with it later.
+
+                RedisUtil.createPlayer(proxiedPlayer, pipeline, true);
+            }
+
+            pipeline.sync();
+
+            final long          time       = getRedisTime(tmpRsc.time());
+            Map<String, String> heartbeats = tmpRsc.hgetAll("heartbeats");
+
+            for (Map.Entry<String, String> entry : heartbeats.entrySet())
+            {
+                long stamp = Long.parseLong(entry.getValue());
+
+                if (time - stamp > 3600)
+                {
+                    tmpRsc.hdel("heartbeats", entry.getKey());
+                    getLogger().info("Heartbeat of " + entry.getKey() + " was removed because it has been inactive for more than 1 hour.");
+                }
+            }
+        } catch (Throwable e) {
+            getLogger().log(Level.SEVERE, "Unable to run integrity checks", e);
         }
     }
 }

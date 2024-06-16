@@ -87,8 +87,8 @@ public final class RedisVelocity {
 
     private static final Object SERVER_TO_PLAYERS_KEY = new Object();
     private final Cache<Object, Multimap<String, UUID>> serverToPlayersCache = CacheBuilder.newBuilder()
-            .expireAfterWrite(5, TimeUnit.SECONDS)
-            .build();
+        .expireAfterWrite(5, TimeUnit.SECONDS)
+        .build();
 
     @Getter
     private final ProxyServer proxy;
@@ -126,28 +126,34 @@ public final class RedisVelocity {
         try (Jedis jedis = pool.getResource())
         {
             int nagTime = 0;
+
             if (nag)
             {
                 nagTime = nagAboutServers.decrementAndGet();
+
                 if (nagTime <= 0)
                 {
                     nagAboutServers.set(10);
                 }
             }
+
             ImmutableList.Builder<String> servers    = ImmutableList.builder();
             Map<String, String>           heartbeats = jedis.hgetAll("heartbeats");
             final long                    time       = getRedisTime(jedis.time());
+
             for (Map.Entry<String, String> entry : heartbeats.entrySet())
             {
                 try
                 {
                     long stamp = Long.parseLong(entry.getValue());
-                    if (lagged ? time >= stamp + 30 : time <= stamp + 30)
-                    {
+
+                    if (!lagged || time >= stamp + 1000) {
                         servers.add(entry.getKey());
-                    } else if (nag && nagTime <= 0)
+                    }
+
+                    if ((lagged ? time < stamp + 30 : time > stamp + 30) && nag && nagTime <= 0)
                     {
-                        getLogger().warn(entry.getKey() + " is " + (time - stamp) + " seconds behind! (Time not synchronized or server down?)");
+                        getLogger().warn(entry.getKey() + " is " + (time - stamp) + " seconds behind! (Time not synchronized or server down?) (Continuing anyways..)");
                     }
                 } catch (NumberFormatException ignored)
                 {
@@ -163,12 +169,15 @@ public final class RedisVelocity {
 
     public Set<UUID> getPlayersOnProxy(String server) {
         checkArgument(getServerIds().contains(server), server + " is not a valid proxy ID");
+
         try (Jedis jedis = pool.getResource()) {
             Set<String> users = jedis.smembers("proxy:" + server + ":usersOnline");
             ImmutableSet.Builder<UUID> builder = ImmutableSet.builder();
+
             for (String user : users) {
                 builder.add(UUID.fromString(user));
             }
+
             return builder.build();
         }
     }
@@ -180,6 +189,7 @@ public final class RedisVelocity {
 
                 ImmutableMultimap.Builder<String, UUID> builder = ImmutableMultimap.builder();
                 String key = null;
+
                 for (String s : data) {
                     if (key == null) {
                         key = s;
@@ -208,22 +218,28 @@ public final class RedisVelocity {
 
     public Set<String> getLocalPlayersAsUuidStrings() {
         ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+
         for (Player player : getProxy().getAllPlayers()) {
             builder.add(player.getUniqueId().toString());
         }
+
         return builder.build();
     }
 
-     Set<UUID> getPlayers() {
+    Set<UUID> getPlayers() {
         ImmutableSet.Builder<UUID> setBuilder = ImmutableSet.builder();
+
         if (pool != null) {
             try (Jedis rsc = pool.getResource()) {
                 List<String> keys = new ArrayList<>();
+
                 for (String i : getServerIds()) {
                     keys.add("proxy:" + i + ":usersOnline");
                 }
+
                 if (!keys.isEmpty()) {
                     Set<String> users = rsc.sunion(keys.toArray(new String[keys.size()]));
+
                     if (users != null && !users.isEmpty()) {
                         for (String user : users) {
                             try {
@@ -405,6 +421,7 @@ public final class RedisVelocity {
 
             getProxy().getEventManager().register(this, new RedisVelocityListener(this, configuration.getExemptAddresses()));
             getProxy().getEventManager().register(this, dataManager);
+
             psl = new PubSubListener();
             getProxy().getScheduler().buildTask(this, psl).schedule();
 
@@ -418,8 +435,10 @@ public final class RedisVelocity {
                     for (String s : lagged) {
                         Set<String> laggedPlayers = tmpRsc.smembers("proxy:" + s + ":usersOnline");
                         tmpRsc.del("proxy:" + s + ":usersOnline");
+
                         if (!laggedPlayers.isEmpty()) {
                             getLogger().info("Cleaning up lagged proxy " + s + " (" + laggedPlayers.size() + " players)...");
+
                             for (String laggedPlayer : laggedPlayers) {
                                 RedisUtil.cleanUpPlayer(laggedPlayer, tmpRsc);
                             }
@@ -428,6 +447,7 @@ public final class RedisVelocity {
 
                     Set<String> absentLocally = new HashSet<>(playersInRedis);
                     absentLocally.removeAll(players);
+
                     Set<String> absentInRedis = new HashSet<>(players);
                     absentInRedis.removeAll(playersInRedis);
 
@@ -562,16 +582,17 @@ public final class RedisVelocity {
             // Test the connection
             try (Jedis rsc = pool.getResource()) {
                 rsc.ping();
+                rsc.sync();
+
                 // If that worked, now we can check for an existing, alive Bungee:
                 if (rsc.hexists("heartbeats", serverId)) {
                     try {
                         long value = Long.parseLong(rsc.hget("heartbeats", serverId));
                         long redisTime = getRedisTime(rsc.time());
+
                         if (redisTime < value + 20) {
                             getLogger().warn("You have launched a possible impostor BungeeCord instance. Another instance is already running.");
-                            getLogger().warn("For data consistency reasons, RedisBungee will now disable itself.");
-                            getLogger().warn("If this instance is coming up from a crash, create a file in your RedisBungee plugins directory with the name 'restarted_from_crash.txt' and RedisBungee will not perform this check.");
-                            throw new RuntimeException("Possible impostor instance!");
+                            getLogger().warn("For data consistency reasons, please fix this if 2 instances of the same id are running");
                         }
                     } catch (NumberFormatException ignored) {
                     }
@@ -579,10 +600,13 @@ public final class RedisVelocity {
 
                 FutureTask<Void> task2 = new FutureTask<>(() -> {
                     httpClient = new OkHttpClient();
+
                     Dispatcher dispatcher = new Dispatcher();
                     httpClient.setDispatcher(dispatcher);
+
                     NameFetcher.setHttpClient(httpClient);
                     UUIDFetcher.setHttpClient(httpClient);
+
                     RedisVelocity.configuration = new RedisVelocityConfiguration(RedisVelocity.this.getPool(), configuration);
                     return null;
                 });
