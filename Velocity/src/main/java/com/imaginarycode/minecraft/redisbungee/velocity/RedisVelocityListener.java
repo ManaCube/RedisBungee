@@ -144,7 +144,7 @@ public class RedisVelocityListener {
         });
     }
 
-    @Subscribe(order = PostOrder.LAST)
+    @Subscribe(order = PostOrder.LATE)
     public void onPing(final ProxyPingEvent event) {
         if (exemptAddresses.contains(event.getConnection().getRemoteAddress().getAddress())) {
             return;
