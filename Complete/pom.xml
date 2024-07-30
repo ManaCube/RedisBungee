@@ -7,18 +7,12 @@
     <parent>
         <groupId>com.imaginarycode.minecraft</groupId>
         <artifactId>RedisBungee-Parent</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
     </parent>
 
     <artifactId>RedisBungee</artifactId>
 
     <dependencies>
-        <dependency>
-            <groupId>com.ayanix</groupId>
-            <artifactId>Panther</artifactId>
-            <version>1.1.6-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
         <dependency>
             <groupId>com.imaginarycode.minecraft</groupId>
             <artifactId>RedisBungee-Velocity</artifactId>
@@ -37,24 +31,19 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.3.0-SNAPSHOT</version>
+                <version>3.6.0</version>
                 <configuration>
-                    <minimizeJar>false</minimizeJar>
+                    <minimizeJar>true</minimizeJar>
                     <createDependencyReducedPom>false</createDependencyReducedPom>
                     <relocations>
                         <relocation>
                             <pattern>org.json</pattern>
                             <shadedPattern>com.imaginarycode.minecraft.redisbungee.json</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>com.google.gson</pattern>
+                            <shadedPattern>com.imaginarycode.minecraft.redisbungee.internal.gson</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>redis.clients.jedis</pattern>
@@ -86,6 +75,14 @@
                             </shadedPattern>
                         </relocation>
                     </relocations>
+                    <filters>
+                        <filter>
+                            <artifact>com.imaginarycode.minecraft:*</artifact>
+                            <includes>
+                                <include>**</include>
+                            </includes>
+                        </filter>
+                    </filters>
                 </configuration>
                 <executions>
                     <execution>
