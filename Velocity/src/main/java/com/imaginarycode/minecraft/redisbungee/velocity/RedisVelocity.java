@@ -421,6 +421,10 @@ public final class RedisVelocity {
             api = new RedisVelocityAPI(this);
 
             getProxy().getEventManager().register(this, new RedisVelocityListener(this, configuration.getExemptAddresses()));
+            if (getProxy().getPluginManager().getPlugin("geyser").isPresent()) {
+                getProxy().getEventManager().register(this, new RedisVelocityBedrockListener(this, configuration.getExemptAddresses()));
+            }
+
             getProxy().getEventManager().register(this, dataManager);
 
             psl = new PubSubListener();

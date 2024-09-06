@@ -367,6 +367,11 @@ public final class RedisBungee extends Plugin {
             getProxy().getPluginManager().registerCommand(this, new RedisBungeeCommands.DebugCommand(this));
             api = new RedisBungeeAPI(this);
             getProxy().getPluginManager().registerListener(this, new RedisBungeeListener(this, configuration.getExemptAddresses()));
+
+            if (ProxyServer.getInstance().getPluginManager().getPlugin("Geyser") != null) {
+                getProxy().getPluginManager().registerListener(this, new RedisBungeeBedrockListener(this, configuration.getExemptAddresses()));
+            }
+
             getProxy().getPluginManager().registerListener(this, dataManager);
             psl = new PubSubListener();
             getProxy().getScheduler().runAsync(this, psl);
