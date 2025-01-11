@@ -99,6 +99,9 @@ public final class RedisVelocity {
     private final Logger logger;
     private final PluginDescription pluginDescription;
 
+    //Pub sub uses this, so lets register 9 so we have 8 leftover
+    private ExecutorService executorService = Executors.newFixedThreadPool(9, new ThreadFactoryBuilder().setNameFormat("RedisBungee - Task Executor %d").build());
+
     @Inject
     public RedisVelocity(ProxyServer proxy, PluginDescription pluginDescription, Logger logger, @DataDirectory Path pluginDir)
     {
@@ -628,7 +631,7 @@ public final class RedisVelocity {
     }
 
     public void executeAsync(Runnable runnable) {
-        this.getProxy().getScheduler().buildTask(this, runnable).schedule();
+        executorService.execute(runnable);
     }
 
     public void executeAsyncLater(Runnable runnable, TimeUnit timeUnit, long time) {
