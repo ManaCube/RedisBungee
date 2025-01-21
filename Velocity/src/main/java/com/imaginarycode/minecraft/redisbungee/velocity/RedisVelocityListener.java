@@ -163,7 +163,7 @@ public class RedisVelocityListener {
 
         event.setResult(ForwardResult.handled());
 
-        final byte[] data = Arrays.copyOf(event.getData(), event.getData().length);
+        final byte[] data = event.getData();
         plugin.executeAsync(new Runnable() {
             @Override
             public void run() {
